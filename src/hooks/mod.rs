@@ -19,10 +19,19 @@ use windows::Win32::UI::WindowsAndMessaging::{
 /// For Phase 3 the event thread is primarily a routing scaffold; global
 /// [`crate::stats::counters::COUNTERS`] are incremented directly inside the
 /// hook callbacks (no double-counting).  In Phase 7 (US5) the event thread
-/// will additionally update per-app counters using the current [`crate::state::CURRENT_WINDOW`].
+/// additionally updates per-app counters using the current [`crate::state::CURRENT_WINDOW`].
 #[derive(Debug, Clone, Copy)]
 pub enum InputEvent {
+    /// A keystroke that is not a visible character and not a clipboard shortcut
+    /// (e.g. function key, navigation key, modifier, VK_PROCESSKEY, etc.).
     Keystroke,
+    /// A directly-typed visible character (also counts as a keystroke).
+    VisibleChar,
+    /// Ctrl+C was pressed (also counts as a keystroke).
+    CtrlCopy,
+    /// Ctrl+V was pressed (also counts as a keystroke).
+    CtrlPaste,
+    /// A mouse button was clicked.
     MouseClick,
 }
 
@@ -61,13 +70,43 @@ pub fn run_hook_thread(tx: Sender<InputEvent>) {
 /// Consume [`InputEvent`]s from the channel until `stop_flag` is set and the
 /// channel is drained.
 ///
-/// Phase 3: events are already counted by the hook callbacks; this thread
-/// exists as scaffolding for Phase 7 per-app tracking (T041).
+/// Phase 3: global COUNTERS are already incremented by the hook callbacks.
+/// Phase 7 (T041): also updates per-app counters from CURRENT_WINDOW.
 pub fn run_event_thread(rx: Receiver<InputEvent>, stop_flag: Arc<AtomicBool>) {
+    use crate::state::CURRENT_WINDOW;
+    use crate::stats::app_tracker::APP_COUNTERS;
+
     loop {
         match rx.recv_timeout(std::time::Duration::from_millis(100)) {
-            Ok(_event) => {
-                // Phase 7 (US5): update AppCounterMap here (T041).
+            Ok(event) => {
+                // T041: per-app tracking via CURRENT_WINDOW.
+                let process_name = CURRENT_WINDOW
+                    .read()
+                    .map(|w| w.process_name.clone())
+                    .unwrap_or_default();
+
+                if !process_name.is_empty() {
+                    match event {
+                        InputEvent::Keystroke => {
+                            APP_COUNTERS.add_keystroke(&process_name);
+                        }
+                        InputEvent::VisibleChar => {
+                            APP_COUNTERS.add_keystroke(&process_name);
+                            APP_COUNTERS.add_character(&process_name);
+                        }
+                        InputEvent::CtrlCopy => {
+                            APP_COUNTERS.add_keystroke(&process_name);
+                            APP_COUNTERS.add_ctrl_c(&process_name);
+                        }
+                        InputEvent::CtrlPaste => {
+                            APP_COUNTERS.add_keystroke(&process_name);
+                            APP_COUNTERS.add_ctrl_v(&process_name);
+                        }
+                        InputEvent::MouseClick => {
+                            // mouse_clicks not tracked in app_stats schema.
+                        }
+                    }
+                }
             }
             Err(crossbeam_channel::RecvTimeoutError::Timeout) => {
                 if stop_flag.load(Ordering::Relaxed) {

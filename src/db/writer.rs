@@ -10,7 +10,52 @@ use std::time::{Duration, Instant};
 use rusqlite::Connection;
 
 use crate::db::{open_connection, schema::initialize_db};
+use crate::stats::app_tracker::{AppEntry, APP_COUNTERS};
 use crate::stats::counters::{CounterSnapshot, COUNTERS};
+
+// ── app_stats flush (T042) ────────────────────────────────────────────────────
+
+/// Flush a per-app counter snapshot to the `app_stats` table for `date`.
+///
+/// Each process entry uses an `INSERT … ON CONFLICT DO UPDATE` UPSERT.
+/// Entries where all four fields are zero are skipped.
+pub fn flush_app_stats(
+    conn: &Connection,
+    entries: &std::collections::HashMap<String, AppEntry>,
+    date: &str,
+) -> rusqlite::Result<()> {
+    let now_ts = chrono::Utc::now().timestamp();
+    for (process_name, entry) in entries {
+        if entry.keystrokes == 0
+            && entry.characters == 0
+            && entry.ctrl_c == 0
+            && entry.ctrl_v == 0
+        {
+            continue;
+        }
+        conn.execute(
+            "INSERT INTO app_stats
+                 (date, process_name, keystrokes, characters, ctrl_c_count, ctrl_v_count, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5, ?6, ?7)
+             ON CONFLICT(date, process_name) DO UPDATE SET
+                 keystrokes   = keystrokes   + excluded.keystrokes,
+                 characters   = characters   + excluded.characters,
+                 ctrl_c_count = ctrl_c_count + excluded.ctrl_c_count,
+                 ctrl_v_count = ctrl_v_count + excluded.ctrl_v_count,
+                 updated_at   = excluded.updated_at",
+            rusqlite::params![
+                date,
+                process_name,
+                entry.keystrokes as i64,
+                entry.characters as i64,
+                entry.ctrl_c as i64,
+                entry.ctrl_v as i64,
+                now_ts,
+            ],
+        )?;
+    }
+    Ok(())
+}
 
 // ── Date helper (extracted for T015a testability) ────────────────────────────
 
@@ -100,12 +145,15 @@ fn run_writer_thread_inner(stop_flag: Arc<AtomicBool>, date_fn: fn() -> String) 
 
 fn periodic_flush(conn: &Connection, date_fn: fn() -> String) {
     let snap = COUNTERS.swap_all();
+    let app_snap = APP_COUNTERS.snapshot_and_clear();
+
     // Skip if nothing happened since last flush.
     if snap.keystrokes == 0
         && snap.mouse_clicks == 0
         && snap.characters == 0
         && snap.ctrl_c == 0
         && snap.ctrl_v == 0
+        && app_snap.is_empty()
     {
         return;
     }
@@ -121,15 +169,26 @@ fn periodic_flush(conn: &Connection, date_fn: fn() -> String) {
             date
         );
     }
+    if !app_snap.is_empty() {
+        if let Err(e) = flush_app_stats(conn, &app_snap, &date) {
+            log::error!("writer: app_stats flush failed: {e}");
+        }
+    }
 }
 
 fn final_flush(conn: &Connection, date_fn: fn() -> String) {
     let snap = COUNTERS.swap_all();
+    let app_snap = APP_COUNTERS.snapshot_and_clear();
     let date = date_fn();
     if let Err(e) = flush_daily_stats(conn, &snap, &date) {
         log::error!("writer: final flush failed: {e}");
     } else {
         log::info!("writer: final flush complete for {date}");
+    }
+    if !app_snap.is_empty() {
+        if let Err(e) = flush_app_stats(conn, &app_snap, &date) {
+            log::error!("writer: app_stats final flush failed: {e}");
+        }
     }
 }
 

@@ -143,16 +143,16 @@
 
 ### Tests for User Story 5 ⚠️ 先写测试，确认 FAIL 后再实现
 
-- [ ] T037 [P] [US5] 编写 AppCounterMap 单元测试：验证多进程聚合计数、快照后清零——文件 src/stats/app_tracker.rs（`#[cfg(test)]`）
-- [ ] T038 [P] [US5] 扩展 DB 写入集成测试：给定多进程增量，验证 app_stats UPSERT 正确（追加到 tests/integration/db_writer_test.rs）
+- [X] T037 [P] [US5] 编写 AppCounterMap 单元测试：验证多进程聚合计数、快照后清零——文件 src/stats/app_tracker.rs（`#[cfg(test)]`）
+- [X] T038 [P] [US5] 扩展 DB 写入集成测试：给定多进程增量，验证 app_stats UPSERT 正确（追加到 tests/integration/db_writer_test.rs）
 
 ### Implementation for User Story 5
 
-- [ ] T039 [P] [US5] 实现 `AppCounterMap` 和 `AppEntry`（keystrokes、characters、ctrl_c、ctrl_v 字段）及快照方法——文件 src/stats/app_tracker.rs
-- [ ] T040 [US5] 在窗口追踪器中补充进程名规范化处理（T012 已通过 `QueryFullProcessImageNameW` 获取原始完整路径；此任务负责从路径中提取文件名、转小写、去掉 .exe 后缀），将规范化结果写入 `WindowInfo.process_name` 字段——文件 src/hooks/window.rs（注：T012 产出原始路径，T040 产出规范化 process_name，职责不重叠）
-- [ ] T041 [US5] 在事件处理线程中：每次收到输入事件时，读取当前 `WindowInfo.process_name`，更新 `AppCounterMap` 对应 entry——文件 src/hooks/mod.rs
-- [ ] T042 [US5] 在 DB 写入线程中：快照 `AppCounterMap`，对每个进程条目执行 app_stats UPSERT（`ON CONFLICT(date, process_name) DO UPDATE SET ...`）——文件 src/db/writer.rs
-- [ ] T043 [US5] 实现 `kim apps` 子命令：查询 app_stats，渲染排行表格（应用、键盘敲击、打字数、复制、粘贴，`--date`、`--top N` 选项，按键盘敲击降序）——文件 src/cli/apps.rs
+- [X] T039 [P] [US5] 实现 `AppCounterMap` 和 `AppEntry`（keystrokes、characters、ctrl_c、ctrl_v 字段）及快照方法——文件 src/stats/app_tracker.rs
+- [X] T040 [US5] 在窗口追踪器中补充进程名规范化处理（T012 已通过 `QueryFullProcessImageNameW` 获取原始完整路径；此任务负责从路径中提取文件名、转小写、去掉 .exe 后缀），将规范化结果写入 `WindowInfo.process_name` 字段——文件 src/hooks/window.rs（注：T012 产出原始路径，T040 产出规范化 process_name，职责不重叠）
+- [X] T041 [US5] 在事件处理线程中：每次收到输入事件时，读取当前 `WindowInfo.process_name`，更新 `AppCounterMap` 对应 entry——文件 src/hooks/mod.rs
+- [X] T042 [US5] 在 DB 写入线程中：快照 `AppCounterMap`，对每个进程条目执行 app_stats UPSERT（`ON CONFLICT(date, process_name) DO UPDATE SET ...`）——文件 src/db/writer.rs
+- [X] T043 [US5] 实现 `kim apps` 子命令：查询 app_stats，渲染排行表格（应用、键盘敲击、打字数、复制、粘贴，`--date`、`--top N` 选项，按键盘敲击降序）——文件 src/cli/apps.rs
 
 **Checkpoint**: `kim apps` 正确显示各应用分项输入统计，切换进程时计数无丢失（SC-008）
 

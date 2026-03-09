@@ -93,27 +93,30 @@ unsafe extern "system" fn keyboard_proc(
             // GetKeyState high-order bit is set when the key is pressed.
             let ctrl_down = (GetKeyState(0x11) as u16) & 0x8000 != 0; // VK_CONTROL
 
-            if is_ctrl_copy(vk, ctrl_down) {
+            // Determine the detailed event type for Phase 7 per-app tracking,
+            // and simultaneously update the global counters (Phase 3/5/6).
+            let event = if is_ctrl_copy(vk, ctrl_down) {
                 COUNTERS.ctrl_c.fetch_add(1, Ordering::Relaxed);
+                InputEvent::CtrlCopy
             } else if is_ctrl_paste(vk, ctrl_down) {
                 COUNTERS.ctrl_v.fetch_add(1, Ordering::Relaxed);
                 // Ctrl+V must NOT increment characters — pasted content is not typed.
-            } else {
+                InputEvent::CtrlPaste
+            } else if vk != VK_PROCESSKEY
+                && is_visible_char(vk)
+                && !IS_PASSWORD_FIELD.load(Ordering::Relaxed)
+            {
                 // Phase 5 (T031): count direct visible characters.
-                // VK_PROCESSKEY → IME is handling this key; UIA TextChanged will
-                // count the committed character(s) to avoid double-counting.
-                if vk != VK_PROCESSKEY
-                    && is_visible_char(vk)
-                    && !IS_PASSWORD_FIELD.load(Ordering::Relaxed)
-                {
-                    COUNTERS.characters.fetch_add(1, Ordering::Relaxed);
-                }
-            }
+                COUNTERS.characters.fetch_add(1, Ordering::Relaxed);
+                InputEvent::VisibleChar
+            } else {
+                InputEvent::Keystroke
+            };
 
             // Route event for per-app tracking (Phase 7/US5).
             KEYBOARD_TX.with(|cell| {
                 if let Some(tx) = cell.borrow().as_ref() {
-                    let _ = tx.try_send(InputEvent::Keystroke);
+                    let _ = tx.try_send(event);
                 }
             });
         }

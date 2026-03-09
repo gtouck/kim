@@ -4,3 +4,4 @@
 mod autostart_test;
 mod cli_output_test;
 mod db_writer_test;
+mod app_stats_test;
