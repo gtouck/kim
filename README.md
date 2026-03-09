@@ -267,6 +267,41 @@ tests/
 
 ---
 
+## Roadmap
+
+### Phase 2 — 功能增强
+
+- [ ] **按小时分布统计**：新增 `hourly_stats` 表，记录每小时输入数据，支持 ASCII 热力图展示一天中的活跃时段
+- [ ] **打字速度（CPM）**：基于字符数与有效打字时段计算每分钟字符数，在 `kim today` 中展示
+- [ ] **鼠标移动距离 & 滚轮统计**：扩展 `WH_MOUSE_LL` 钩子，累积鼠标移动欧式距离和滚轮格数
+- [ ] **数据导出**：支持 `kim history --format csv` 导出 CSV 格式，方便外部分析
+
+### Phase 3 — GUI 前端（Tauri 2.0 + React）
+
+- [ ] **Cargo workspace 改造**：拆分为 `kim-core`（共享查询逻辑）、`kim-cli`（CLI + daemon）、`kim-gui`（Tauri GUI）三个 crate
+- [ ] **Tauri commands 层**：实现 `get_today`、`get_history`、`get_apps`、`get_langs`、`get_daemon_status`、`start_daemon`、`stop_daemon` 等 commands
+- [ ] **Dashboard 页面**：今日 5 个核心指标卡片 + daemon 状态指示灯 + 启动/停止控制
+- [ ] **趋势页面**：最近 7/14/30 天键击数、字符数、鼠标点击的折线图
+- [ ] **应用页面**：按进程名排名的横向柱状图（top 10），支持日期切换
+- [ ] **语言页面**：编程语言饼图 + 专注时间条形图
+- [ ] **系统托盘**：利用 Tauri 2.0 tray-icon 插件，右键查看今日关键数据
+- [ ] **自动刷新**：30 秒轮询更新，与 daemon 写入周期对齐
+
+### Phase 4 — 可靠性与工程化
+
+- [ ] **数据库迁移框架**：完善 `schema_version` 检测与升级路径，支持未来 schema 变更
+- [ ] **Daemon 自动重启**：崩溃后自动重拉（watchdog 或 Windows Service 封装）
+- [ ] **配置文件**：`%LOCALAPPDATA%\kim\config.toml` 支持写入间隔、日志级别、数据保留天数等参数
+- [ ] **安装脚本**：`install.ps1` 自动复制 binary 到 `%LOCALAPPDATA%\kim\bin\`，更新用户 PATH
+- [ ] **定期 VACUUM**：每日 00:00 或提供 `kim db vacuum` 子命令清理 SQLite 碎片
+
+### Phase 5 — 测试加固
+
+- [ ] **Property-based 测试**：对 `is_visible_char`、`is_ctrl_copy/paste` 等核心判定函数引入 `proptest` 全域模糊测试
+- [ ] **E2E 冒烟测试**：通过 `SendInput` API 注入合成键盘事件，验证「启动 daemon → 输入 → CLI 查询」完整链路
+
+---
+
 ## 许可证
 
 MIT
