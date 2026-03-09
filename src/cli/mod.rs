@@ -3,6 +3,7 @@ pub mod history;
 pub mod apps;
 pub mod langs;
 pub mod autostart;
+pub mod reset;
 
 // ─── Shared display utilities ────────────────────────────────────────────────
 

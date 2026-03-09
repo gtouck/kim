@@ -147,10 +147,12 @@ pub fn flush_daily_stats(
 
 // ── Write loop (T016) ────────────────────────────────────────────────────────
 
-const FLUSH_INTERVAL: Duration = Duration::from_secs(30);
+const FLUSH_INTERVAL: Duration = Duration::from_secs(5);
 const POLL_INTERVAL: Duration = Duration::from_millis(200);
+/// Cleanup (prune old rows) runs independently of flush, once every 5 minutes.
+const CLEANUP_INTERVAL: Duration = Duration::from_secs(300);
 
-/// Start the 30-second write loop.  Runs until `stop_flag` is set, then
+/// Start the 5-second write loop.  Runs until `stop_flag` is set, then
 /// performs one final flush before returning.
 pub fn run_writer_thread(stop_flag: Arc<AtomicBool>) {
     run_writer_thread_inner(stop_flag, current_date);
@@ -171,6 +173,7 @@ fn run_writer_thread_inner(stop_flag: Arc<AtomicBool>, date_fn: fn() -> String) 
     }
 
     let mut last_flush = Instant::now();
+    let mut last_cleanup = Instant::now();
 
     loop {
         std::thread::sleep(POLL_INTERVAL);
@@ -184,6 +187,11 @@ fn run_writer_thread_inner(stop_flag: Arc<AtomicBool>, date_fn: fn() -> String) 
         if last_flush.elapsed() >= FLUSH_INTERVAL {
             last_flush = Instant::now();
             periodic_flush(&conn, date_fn);
+        }
+
+        if last_cleanup.elapsed() >= CLEANUP_INTERVAL {
+            last_cleanup = Instant::now();
+            cleanup_old_data(&conn);
         }
     }
 }
@@ -227,8 +235,6 @@ fn periodic_flush(conn: &Connection, date_fn: fn() -> String) {
             log::error!("writer: lang_stats flush failed: {e}");
         }
     }
-    // T053: prune rows older than 30 days after each successful flush.
-    cleanup_old_data(conn);
 }
 
 // ── T053: 30-day data retention ──────────────────────────────────────────────

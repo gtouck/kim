@@ -5,7 +5,7 @@ use std::process;
 
 use clap::{Parser, Subcommand};
 
-use kim::cli::{apps, autostart, history, langs, today};
+use kim::cli::{apps, autostart, history, langs, today, reset};
 use kim::db::{open_connection, schema::initialize_db};
 use kim::state::{delete_pid_file, read_pid_file};
 
@@ -64,6 +64,15 @@ enum Commands {
         #[command(subcommand)]
         sub: AutostartSub,
     },
+    /// Clear all statistics (or a specific date's data) from the database
+    Reset {
+        /// Delete only this date's data (YYYY-MM-DD); omit to delete everything
+        #[arg(long)]
+        date: Option<String>,
+        /// Skip confirmation prompt
+        #[arg(long, short = 'y')]
+        yes: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -99,6 +108,9 @@ fn main() {
             AutostartSub::Disable => cmd_autostart_disable(),
             AutostartSub::Status => cmd_autostart_status(),
         },
+        Commands::Reset { date, yes } => {
+            with_db(|c| reset::cmd_reset(c, date.as_deref(), yes))
+        }
     };
     process::exit(code);
 }

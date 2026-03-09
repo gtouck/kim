@@ -14,8 +14,8 @@ use windows::Win32::System::Threading::{
 };
 use windows::Win32::UI::Accessibility::{SetWinEventHook, UnhookWinEvent, HWINEVENTHOOK};
 use windows::Win32::UI::WindowsAndMessaging::{
-    GetWindowTextW, GetWindowThreadProcessId, EVENT_OBJECT_FOCUS, EVENT_SYSTEM_FOREGROUND,
-    WINEVENT_OUTOFCONTEXT,
+    GetAncestor, GetWindowTextW, GetWindowThreadProcessId, GA_ROOT,
+    EVENT_OBJECT_FOCUS, EVENT_SYSTEM_FOREGROUND, WINEVENT_OUTOFCONTEXT,
 };
 use windows::core::PWSTR;
 
@@ -83,14 +83,23 @@ unsafe extern "system" fn winevent_proc(
         return;
     }
 
-    // Capture window title
+    // For EVENT_OBJECT_FOCUS the hwnd may be a child control (e.g. the editor
+    // pane inside VS Code) whose GetWindowTextW returns an empty string.
+    // Walk up to the root (top-level) window so we always read the title bar,
+    // which contains the file name for language detection.
+    let root_hwnd = {
+        let root = GetAncestor(hwnd, GA_ROOT);
+        if root.0 == 0 { hwnd } else { root }
+    };
+
+    // Capture window title from the root window
     let mut title_buf = [0u16; 512];
-    let title_len = GetWindowTextW(hwnd, &mut title_buf);
+    let title_len = GetWindowTextW(root_hwnd, &mut title_buf);
     let window_title = String::from_utf16_lossy(&title_buf[..title_len as usize]);
 
-    // Get owning process ID
+    // Get owning process ID (child and root share the same PID, use root for clarity)
     let mut pid: u32 = 0;
-    GetWindowThreadProcessId(hwnd, Some(&mut pid));
+    GetWindowThreadProcessId(root_hwnd, Some(&mut pid));
 
     let process_name = if pid != 0 {
         get_process_name_normalized(pid).unwrap_or_default()
