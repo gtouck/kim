@@ -123,13 +123,13 @@
 
 ### Tests for User Story 3 ⚠️ 先写测试，确认 FAIL 后再实现
 
-- [ ] T033 [P] [US3] 编写单元测试：验证 Ctrl 修饰键 + C/V 检测逻辑（使用保存的键盘状态模拟，非 Ctrl 组合不触发计数）——文件 src/hooks/keyboard.rs（`#[cfg(test)]`）
+- [X] T033 [P] [US3] 编写单元测试：验证 Ctrl 修饰键 + C/V 检测逻辑（使用保存的键盘状态模拟，非 Ctrl 组合不触发计数）——文件 src/hooks/keyboard.rs（`#[cfg(test)]`）
 
 ### Implementation for User Story 3
 
-- [ ] T034 [US3] 在键盘钩子回调中增加 Ctrl+C/V 检测：检查 `GetKeyState(VK_CONTROL)` 最高位 + vkCode == VK_C / VK_V，分别递增 `COUNTERS.ctrl_c` / `COUNTERS.ctrl_v`；Ctrl+V 路径确保不调用 characters 递增分支——文件 src/hooks/keyboard.rs
-- [ ] T035 [US3] 验证 T015 的 daily_stats UPSERT 已包含 ctrl_c_count 和 ctrl_v_count（T015 已明确枚举全部 7 字段，此任务为确认性检查，无需修改代码）——文件 src/db/writer.rs
-- [ ] T036 [US3] 在 `kim today` 表格渲染中添加「复制 (Ctrl+C)」和「粘贴 (Ctrl+V)」行——文件 src/cli/today.rs
+- [X] T034 [US3] 在键盘钩子回调中增加 Ctrl+C/V 检测：检查 `GetKeyState(VK_CONTROL)` 最高位 + vkCode == VK_C / VK_V，分别递增 `COUNTERS.ctrl_c` / `COUNTERS.ctrl_v`；Ctrl+V 路径确保不调用 characters 递增分支——文件 src/hooks/keyboard.rs
+- [X] T035 [US3] 验证 T015 的 daily_stats UPSERT 已包含 ctrl_c_count 和 ctrl_v_count（T015 已明确枚举全部 7 字段，此任务为确认性检查，无需修改代码）——文件 src/db/writer.rs
+- [X] T036 [US3] 在 `kim today` 表格渲染中添加「复制 (Ctrl+C)」和「粘贴 (Ctrl+V)」行——文件 src/cli/today.rs
 
 **Checkpoint**: `kim today` 显示完整 5 项统计（键盘、鼠标、字符、复制、粘贴），粘贴操作不膨胀字符数
 

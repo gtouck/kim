@@ -8,6 +8,7 @@ use std::sync::atomic::Ordering;
 
 use crossbeam_channel::Sender;
 use windows::Win32::Foundation::{LPARAM, LRESULT, WPARAM};
+use windows::Win32::UI::Input::KeyboardAndMouse::GetKeyState;
 use windows::Win32::UI::WindowsAndMessaging::{
     CallNextHookEx, SetWindowsHookExW, HHOOK, KBDLLHOOKSTRUCT, WH_KEYBOARD_LL, WM_KEYDOWN,
     WM_SYSKEYDOWN,
@@ -21,6 +22,20 @@ use super::InputEvent;
 /// characters via UIA TextChanged.  Must NOT be counted as direct characters
 /// to avoid double-counting with the UIA thread.
 const VK_PROCESSKEY: u32 = 0xE5;
+
+/// Virtual-key codes for C and V.
+const VK_C: u32 = 0x43;
+const VK_V: u32 = 0x56;
+
+/// Returns `true` when the given VK + ctrl-state represents a Ctrl+C (copy).
+pub(crate) fn is_ctrl_copy(vk: u32, ctrl_down: bool) -> bool {
+    ctrl_down && vk == VK_C
+}
+
+/// Returns `true` when the given VK + ctrl-state represents a Ctrl+V (paste).
+pub(crate) fn is_ctrl_paste(vk: u32, ctrl_down: bool) -> bool {
+    ctrl_down && vk == VK_V
+}
 
 thread_local! {
     static KEYBOARD_TX: RefCell<Option<Sender<InputEvent>>> = const { RefCell::new(None) };
@@ -74,14 +89,25 @@ unsafe extern "system" fn keyboard_proc(
             // Phase 3: count every key-down as a keystroke.
             COUNTERS.keystrokes.fetch_add(1, Ordering::Relaxed);
 
-            // Phase 5 (T031): count direct visible characters.
-            // VK_PROCESSKEY → IME is handling this key; UIA TextChanged will
-            // count the committed character(s) to avoid double-counting.
-            if vk != VK_PROCESSKEY
-                && is_visible_char(vk)
-                && !IS_PASSWORD_FIELD.load(Ordering::Relaxed)
-            {
-                COUNTERS.characters.fetch_add(1, Ordering::Relaxed);
+            // Phase 6 (T034): detect Ctrl+C / Ctrl+V.
+            // GetKeyState high-order bit is set when the key is pressed.
+            let ctrl_down = (GetKeyState(0x11) as u16) & 0x8000 != 0; // VK_CONTROL
+
+            if is_ctrl_copy(vk, ctrl_down) {
+                COUNTERS.ctrl_c.fetch_add(1, Ordering::Relaxed);
+            } else if is_ctrl_paste(vk, ctrl_down) {
+                COUNTERS.ctrl_v.fetch_add(1, Ordering::Relaxed);
+                // Ctrl+V must NOT increment characters — pasted content is not typed.
+            } else {
+                // Phase 5 (T031): count direct visible characters.
+                // VK_PROCESSKEY → IME is handling this key; UIA TextChanged will
+                // count the committed character(s) to avoid double-counting.
+                if vk != VK_PROCESSKEY
+                    && is_visible_char(vk)
+                    && !IS_PASSWORD_FIELD.load(Ordering::Relaxed)
+                {
+                    COUNTERS.characters.fetch_add(1, Ordering::Relaxed);
+                }
             }
 
             // Route event for per-app tracking (Phase 7/US5).
@@ -97,7 +123,7 @@ unsafe extern "system" fn keyboard_proc(
 
 #[cfg(test)]
 mod tests {
-    use super::is_visible_char;
+    use super::{is_visible_char, is_ctrl_copy, is_ctrl_paste};
 
     // ── T028: visible-character VK filter ───────────────────────────────────
 
@@ -188,5 +214,45 @@ mod tests {
         for &vk in modifiers {
             assert!(!is_visible_char(vk), "VK 0x{vk:02X} (modifier) should NOT be visible");
         }
+    }
+
+    // ── T033: Ctrl+C/V detection logic ──────────────────────────────────────
+
+    #[test]
+    fn test_is_ctrl_c_detects_ctrl_plus_c() {
+        // VK_C = 0x43, ctrl_down = true → should be detected as Ctrl+C
+        assert!(is_ctrl_copy(0x43, true));
+    }
+
+    #[test]
+    fn test_is_ctrl_v_detects_ctrl_plus_v() {
+        // VK_V = 0x56, ctrl_down = true → should be detected as Ctrl+V
+        assert!(is_ctrl_paste(0x56, true));
+    }
+
+    #[test]
+    fn test_ctrl_c_without_ctrl_not_triggered() {
+        // VK_C without Ctrl held → NOT Ctrl+C
+        assert!(!is_ctrl_copy(0x43, false));
+    }
+
+    #[test]
+    fn test_ctrl_v_without_ctrl_not_triggered() {
+        // VK_V without Ctrl held → NOT Ctrl+V
+        assert!(!is_ctrl_paste(0x56, false));
+    }
+
+    #[test]
+    fn test_ctrl_with_other_key_not_copy_or_paste() {
+        // Ctrl+X (0x58) is neither copy nor paste
+        assert!(!is_ctrl_copy(0x58, true));
+        assert!(!is_ctrl_paste(0x58, true));
+    }
+
+    #[test]
+    fn test_ctrl_a_not_copy_or_paste() {
+        // Ctrl+A (Select All, 0x41) must not trigger copy/paste counters
+        assert!(!is_ctrl_copy(0x41, true));
+        assert!(!is_ctrl_paste(0x41, true));
     }
 }
