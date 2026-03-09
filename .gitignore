@@ -1,0 +1,32 @@
+# Rust build artifacts
+/target/
+debug/
+release/
+*.rs.bk
+*.rlib
+*.prof*
+
+# Generated binaries
+*.exe
+*.dll
+*.lib
+*.pdb
+
+# IDE and editor files
+.idea/
+.vscode/settings.json
+*.iml
+
+# Environment and logs
+*.log
+.env
+.env.*
+
+# OS
+.DS_Store
+Thumbs.db
+*.tmp
+*.swp
+
+# Cargo lock (keep for binary projects)
+# Cargo.lock is intentionally tracked for binary crates

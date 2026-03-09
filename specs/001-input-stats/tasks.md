@@ -19,8 +19,8 @@
 
 **Purpose**: Rust 项目初始化，双二进制目标与目录结构
 
-- [ ] T001 创建 Cargo.toml：双 binary target（kim + kimd）、windows 子系统标注、所有依赖（windows=0.56、rusqlite=0.31 bundled、crossbeam-channel=0.5、clap=4 derive、chrono=0.4、log=0.4、simplelog=0.12）及所有 windows crate features（Win32_UI_WindowsAndMessaging、Win32_UI_Accessibility、Win32_System_Registry 等）——文件 Cargo.toml
-- [ ] T002 [P] 创建源码目录结构及空模块占位文件：src/lib.rs、src/state.rs、src/hooks/mod.rs、src/hooks/keyboard.rs、src/hooks/mouse.rs、src/hooks/window.rs、src/ime/mod.rs、src/db/mod.rs、src/db/schema.rs、src/db/writer.rs、src/stats/mod.rs、src/stats/counters.rs、src/stats/app_tracker.rs、src/stats/lang_tracker.rs、src/cli/mod.rs、src/cli/today.rs、src/cli/history.rs、src/cli/apps.rs、src/cli/langs.rs、src/cli/autostart.rs、src/bin/kim/main.rs、src/bin/kimd/main.rs、tests/integration/db_writer_test.rs、tests/integration/cli_output_test.rs、tests/integration/autostart_test.rs
+- [X] T001 创建 Cargo.toml：双 binary target（kim + kimd）、windows 子系统标注、所有依赖（windows=0.56、rusqlite=0.31 bundled、crossbeam-channel=0.5、clap=4 derive、chrono=0.4、log=0.4、simplelog=0.12）及所有 windows crate features（Win32_UI_WindowsAndMessaging、Win32_UI_Accessibility、Win32_System_Registry 等）——文件 Cargo.toml
+- [X] T002 [P] 创建源码目录结构及空模块占位文件：src/lib.rs、src/state.rs、src/hooks/mod.rs、src/hooks/keyboard.rs、src/hooks/mouse.rs、src/hooks/window.rs、src/ime/mod.rs、src/db/mod.rs、src/db/schema.rs、src/db/writer.rs、src/stats/mod.rs、src/stats/counters.rs、src/stats/app_tracker.rs、src/stats/lang_tracker.rs、src/cli/mod.rs、src/cli/today.rs、src/cli/history.rs、src/cli/apps.rs、src/cli/langs.rs、src/cli/autostart.rs、src/bin/kim/main.rs、src/bin/kimd/main.rs、tests/integration/db_writer_test.rs、tests/integration/cli_output_test.rs、tests/integration/autostart_test.rs
 
 ---
 
@@ -30,11 +30,11 @@
 
 **⚠️ CRITICAL**: 此阶段完成前，任何用户故事均不可开始实现
 
-- [ ] T003 实现全部 4 张表的 SQL DDL（daily_stats、app_stats、language_stats、schema_version）及 `initialize_db()` 函数——文件 src/db/schema.rs
-- [ ] T004 实现 DB 连接管理：`open_connection()` 函数、WAL 模式 PRAGMA、NORMAL 同步级别、AppData 路径解析（`%LOCALAPPDATA%\kim\stats.db`）——文件 src/db/mod.rs
-- [ ] T005 [P] 实现 `GlobalCounters` 结构体（5 个 AtomicU64 字段：keystrokes、mouse_clicks、characters、ctrl_c、ctrl_v）及 `swap_all()` 原子快照方法——文件 src/stats/counters.rs
-- [ ] T006 [P] 实现数据目录创建和 PID 文件读写删除工具函数（路径：`%LOCALAPPDATA%\kim\kimd.pid`）——文件 src/state.rs
-- [ ] T007 实现 `WindowInfo` 共享状态结构体（进程名、窗口标题）与 `IS_PASSWORD_FIELD: AtomicBool` 全局变量——文件 **src/state.rs**（与 PID 工具函数同文件，统一管理全局共享状态；其他模块通过 `crate::state::IS_PASSWORD_FIELD` 引用）
+- [X] T003 实现全部 4 张表的 SQL DDL（daily_stats、app_stats、language_stats、schema_version）及 `initialize_db()` 函数——文件 src/db/schema.rs
+- [X] T004 实现 DB 连接管理：`open_connection()` 函数、WAL 模式 PRAGMA、NORMAL 同步级别、AppData 路径解析（`%LOCALAPPDATA%\kim\stats.db`）——文件 src/db/mod.rs
+- [X] T005 [P] 实现 `GlobalCounters` 结构体（5 个 AtomicU64 字段：keystrokes、mouse_clicks、characters、ctrl_c、ctrl_v）及 `swap_all()` 原子快照方法——文件 src/stats/counters.rs
+- [X] T006 [P] 实现数据目录创建和 PID 文件读写删除工具函数（路径：`%LOCALAPPDATA%\kim\kimd.pid`）——文件 src/state.rs
+- [X] T007 实现 `WindowInfo` 共享状态结构体（进程名、窗口标题）与 `IS_PASSWORD_FIELD: AtomicBool` 全局变量——文件 **src/state.rs**（与 PID 工具函数同文件，统一管理全局共享状态；其他模块通过 `crate::state::IS_PASSWORD_FIELD` 引用）
 
 **Checkpoint**: Foundation ready — 用户故事实现可以开始
 
@@ -49,20 +49,20 @@
 
 ### Tests for User Story 1 ⚠️ 先写测试，确认 FAIL 后再实现
 
-- [ ] T008 [P] [US1] 编写 GlobalCounters 单元测试：验证 `fetch_add` 累加与 `swap_all` 原子读零——文件 src/stats/counters.rs（`#[cfg(test)]`）
-- [ ] T009 [P] [US1] 编写 DB 写入集成测试：给定计数器增量，验证 daily_stats UPSERT 结果正确（使用临时 SQLite 文件）——文件 tests/integration/db_writer_test.rs
+- [X] T008 [P] [US1] 编写 GlobalCounters 单元测试：验证 `fetch_add` 累加与 `swap_all` 原子读零——文件 src/stats/counters.rs（`#[cfg(test)]`）
+- [X] T009 [P] [US1] 编写 DB 写入集成测试：给定计数器增量，验证 daily_stats UPSERT 结果正确（使用临时 SQLite 文件）——文件 tests/integration/db_writer_test.rs
 
 ### Implementation for User Story 1
 
-- [ ] T010 [P] [US1] 实现 WH_KEYBOARD_LL 钩子回调：递增 keystrokes、通过 `try_send` 推送 InputEvent 到有界 channel——文件 src/hooks/keyboard.rs
-- [ ] T011 [P] [US1] 实现 WH_MOUSE_LL 钩子回调：检测 WM_LBUTTONDOWN / WM_RBUTTONDOWN / WM_MBUTTONDOWN，递增 mouse_clicks，`try_send` 入 channel——文件 src/hooks/mouse.rs
-- [ ] T012 [US1] 实现 SetWinEventHook（EVENT_SYSTEM_FOREGROUND + EVENT_OBJECT_FOCUS）：在回调中调用 `GetWindowTextW` + `QueryFullProcessImageNameW` 更新共享 WindowInfo——文件 src/hooks/window.rs
-- [ ] T013 [US1] 实现钩子线程主循环：接收从 kimd/main.rs 传入的 channel `tx` 端（channel 在 main.rs 中创建并 move），调用 `SetWindowsHookExW`（键盘 + 鼠标两个钩子）、`SetWinEventHook`，进入 `GetMessageW` 消息循环——文件 src/hooks/mod.rs
-- [ ] T014 [US1] 实现事件处理线程：接收从 kimd/main.rs 传入的 channel `rx` 端（与 T013 共享同一 bounded channel，容量 1024，由 main.rs 在 spawn 前创建），从 `rx` 循环 `recv()`，根据事件类型分派到 `COUNTERS.fetch_add`——文件 src/hooks/mod.rs
-- [ ] T015 [US1] 实现 daily_stats 批量写入逻辑：调用 `COUNTERS.swap_all()` 获取增量，执行包含**全部 7 个字段**的 UPSERT：`ON CONFLICT(date) DO UPDATE SET keystrokes = keystrokes + excluded.keystrokes, mouse_clicks = mouse_clicks + excluded.mouse_clicks, characters = characters + excluded.characters, ctrl_c_count = ctrl_c_count + excluded.ctrl_c_count, ctrl_v_count = ctrl_v_count + excluded.ctrl_v_count, updated_at = excluded.updated_at`——文件 src/db/writer.rs
-- [ ] T015a [US1] 编写午夜 rollover 单元测试：将 `current_date()` 抽取为可注入函数，测试写入循环跨日时正确切换 date 键并为新日期创建记录——文件 src/db/writer.rs（`#[cfg(test)]`）
-- [ ] T016 [US1] 实现 30 秒写入定时循环与午夜日期切换检测（跨日时插入新日期记录）；停止信号通过 kimd/main.rs 注入的 `Arc<AtomicBool> stop_flag` 检测（主线程监听 `Local\kim-stop-event` 后设 flag 为 true，写入线程轮询 flag），收到信号后执行最终 flush 并退出——文件 src/db/writer.rs
-- [ ] T017 [US1] 实现 kimd/main.rs：创建有界 crossbeam-channel（容量 1024，`tx` move 入钩子线程，`rx` move 入事件处理线程）；创建 `Arc<AtomicBool> stop_flag`（共享给写入线程）；创建 stop 命名事件 `Local\kim-stop-event`；写入 PID 文件；spawn 4 个线程（钩子线程接收 `tx`，事件处理线程接收 `rx`，UIA 占位线程，写入线程接收 `Arc<stop_flag>`）；主线程调用 `WaitForSingleObject(stop_event)` 阻塞；收到信号后设 `stop_flag = true`，等待线程退出，删除 PID 文件；解析 `--autostart` 标志：若存在则在 hook 注册前 `std::thread::sleep(Duration::from_secs(3))`——文件 src/bin/kimd/main.rs
+- [X] T010 [P] [US1] 实现 WH_KEYBOARD_LL 钩子回调：递增 keystrokes、通过 `try_send` 推送 InputEvent 到有界 channel——文件 src/hooks/keyboard.rs
+- [X] T011 [P] [US1] 实现 WH_MOUSE_LL 钩子回调：检测 WM_LBUTTONDOWN / WM_RBUTTONDOWN / WM_MBUTTONDOWN，递增 mouse_clicks，`try_send` 入 channel——文件 src/hooks/mouse.rs
+- [X] T012 [US1] 实现 SetWinEventHook（EVENT_SYSTEM_FOREGROUND + EVENT_OBJECT_FOCUS）：在回调中调用 `GetWindowTextW` + `QueryFullProcessImageNameW` 更新共享 WindowInfo——文件 src/hooks/window.rs
+- [X] T013 [US1] 实现钩子线程主循环：接收从 kimd/main.rs 传入的 channel `tx` 端（channel 在 main.rs 中创建并 move），调用 `SetWindowsHookExW`（键盘 + 鼠标两个钩子）、`SetWinEventHook`，进入 `GetMessageW` 消息循环——文件 src/hooks/mod.rs
+- [X] T014 [US1] 实现事件处理线程：接收从 kimd/main.rs 传入的 channel `rx` 端（与 T013 共享同一 bounded channel，容量 1024，由 main.rs 在 spawn 前创建），从 `rx` 循环 `recv()`，根据事件类型分派到 `COUNTERS.fetch_add`——文件 src/hooks/mod.rs
+- [X] T015 [US1] 实现 daily_stats 批量写入逻辑：调用 `COUNTERS.swap_all()` 获取增量，执行包含**全部 7 个字段**的 UPSERT：`ON CONFLICT(date) DO UPDATE SET keystrokes = keystrokes + excluded.keystrokes, mouse_clicks = mouse_clicks + excluded.mouse_clicks, characters = characters + excluded.characters, ctrl_c_count = ctrl_c_count + excluded.ctrl_c_count, ctrl_v_count = ctrl_v_count + excluded.ctrl_v_count, updated_at = excluded.updated_at`——文件 src/db/writer.rs
+- [X] T015a [US1] 编写午夜 rollover 单元测试：将 `current_date()` 抽取为可注入函数，测试写入循环跨日时正确切换 date 键并为新日期创建记录——文件 src/db/writer.rs（`#[cfg(test)]`）
+- [X] T016 [US1] 实现 30 秒写入定时循环与午夜日期切换检测（跨日时插入新日期记录）；停止信号通过 kimd/main.rs 注入的 `Arc<AtomicBool> stop_flag` 检测（主线程监听 `Local\kim-stop-event` 后设 flag 为 true，写入线程轮询 flag），收到信号后执行最终 flush 并退出——文件 src/db/writer.rs
+- [X] T017 [US1] 实现 kimd/main.rs：创建有界 crossbeam-channel（容量 1024，`tx` move 入钩子线程，`rx` move 入事件处理线程）；创建 `Arc<AtomicBool> stop_flag`（共享给写入线程）；创建 stop 命名事件 `Local\kim-stop-event`；写入 PID 文件；spawn 4 个线程（钩子线程接收 `tx`，事件处理线程接收 `rx`，UIA 占位线程，写入线程接收 `Arc<stop_flag>`）；主线程调用 `WaitForSingleObject(stop_event)` 阻塞；收到信号后设 `stop_flag = true`，等待线程退出，删除 PID 文件；解析 `--autostart` 标志：若存在则在 hook 注册前 `std::thread::sleep(Duration::from_secs(3))`——文件 src/bin/kimd/main.rs
 
 **Checkpoint**: `kimd.exe` 可在后台运行，30 秒后 daily_stats 中出现当日 keystrokes 与 mouse_clicks 数据
 
