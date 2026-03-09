@@ -2,6 +2,7 @@
 //! T015  — `flush_daily_stats` UPSERT (all 7 fields).
 //! T015a — midnight rollover unit tests; `current_date()` extracted as injectable fn.
 //! T016  — `run_writer_thread` write loop + stop-flag shutdown.
+//! T050  — `flush_lang_stats` UPSERT for language_stats.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -12,6 +13,7 @@ use rusqlite::Connection;
 use crate::db::{open_connection, schema::initialize_db};
 use crate::stats::app_tracker::{AppEntry, APP_COUNTERS};
 use crate::stats::counters::{CounterSnapshot, COUNTERS};
+use crate::stats::lang_tracker::{LangSnapshot, LANG_TRACKER};
 
 // ── app_stats flush (T042) ────────────────────────────────────────────────────
 
@@ -52,6 +54,48 @@ pub fn flush_app_stats(
                 entry.ctrl_v as i64,
                 now_ts,
             ],
+        )?;
+    }
+    Ok(())
+}
+
+// ── language_stats flush (T050) ──────────────────────────────────────────────
+
+/// Flush a language focus/character snapshot to the `language_stats` table.
+///
+/// Merges both `focus_seconds` and `char_counts` maps; entries where both
+/// fields are zero are skipped.  Each row uses an UPSERT that accumulates
+/// values across multiple flushes within the same day.
+pub fn flush_lang_stats(
+    conn: &Connection,
+    snap: &LangSnapshot,
+    date: &str,
+) -> rusqlite::Result<()> {
+    let now_ts = chrono::Utc::now().timestamp();
+
+    // Collect the union of languages that appear in either map.
+    let mut languages: std::collections::HashSet<&str> = std::collections::HashSet::new();
+    for lang in snap.focus_seconds.keys() {
+        languages.insert(lang.as_str());
+    }
+    for lang in snap.char_counts.keys() {
+        languages.insert(lang.as_str());
+    }
+
+    for lang in languages {
+        let focus = snap.focus_seconds.get(lang).copied().unwrap_or(0);
+        let chars = snap.char_counts.get(lang).copied().unwrap_or(0);
+        if focus == 0 && chars == 0 {
+            continue;
+        }
+        conn.execute(
+            "INSERT INTO language_stats (date, language, characters, focus_seconds, updated_at)
+             VALUES (?1, ?2, ?3, ?4, ?5)
+             ON CONFLICT(date, language) DO UPDATE SET
+                 characters    = characters    + excluded.characters,
+                 focus_seconds = focus_seconds + excluded.focus_seconds,
+                 updated_at    = excluded.updated_at",
+            rusqlite::params![date, lang, chars as i64, focus as i64, now_ts],
         )?;
     }
     Ok(())
@@ -146,14 +190,17 @@ fn run_writer_thread_inner(stop_flag: Arc<AtomicBool>, date_fn: fn() -> String) 
 fn periodic_flush(conn: &Connection, date_fn: fn() -> String) {
     let snap = COUNTERS.swap_all();
     let app_snap = APP_COUNTERS.snapshot_and_clear();
+    let lang_snap = LANG_TRACKER.snapshot_and_clear();
 
     // Skip if nothing happened since last flush.
+    let lang_has_data = !lang_snap.focus_seconds.is_empty() || !lang_snap.char_counts.is_empty();
     if snap.keystrokes == 0
         && snap.mouse_clicks == 0
         && snap.characters == 0
         && snap.ctrl_c == 0
         && snap.ctrl_v == 0
         && app_snap.is_empty()
+        && !lang_has_data
     {
         return;
     }
@@ -174,11 +221,17 @@ fn periodic_flush(conn: &Connection, date_fn: fn() -> String) {
             log::error!("writer: app_stats flush failed: {e}");
         }
     }
+    if lang_has_data {
+        if let Err(e) = flush_lang_stats(conn, &lang_snap, &date) {
+            log::error!("writer: lang_stats flush failed: {e}");
+        }
+    }
 }
 
 fn final_flush(conn: &Connection, date_fn: fn() -> String) {
     let snap = COUNTERS.swap_all();
     let app_snap = APP_COUNTERS.snapshot_and_clear();
+    let lang_snap = LANG_TRACKER.snapshot_and_clear();
     let date = date_fn();
     if let Err(e) = flush_daily_stats(conn, &snap, &date) {
         log::error!("writer: final flush failed: {e}");
@@ -188,6 +241,12 @@ fn final_flush(conn: &Connection, date_fn: fn() -> String) {
     if !app_snap.is_empty() {
         if let Err(e) = flush_app_stats(conn, &app_snap, &date) {
             log::error!("writer: app_stats final flush failed: {e}");
+        }
+    }
+    let lang_has_data = !lang_snap.focus_seconds.is_empty() || !lang_snap.char_counts.is_empty();
+    if lang_has_data {
+        if let Err(e) = flush_lang_stats(conn, &lang_snap, &date) {
+            log::error!("writer: lang_stats final flush failed: {e}");
         }
     }
 }

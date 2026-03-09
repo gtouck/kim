@@ -166,17 +166,17 @@
 
 ### Tests for User Story 6 ⚠️ 先写测试，确认 FAIL 后再实现
 
-- [ ] T044 [P] [US6] 编写 LanguageFocusTracker 单元测试：验证 5 秒阈值过滤（< 5s 丢弃、>= 5s 计入）、窗口切换时停止计时、accumulated 秒数累加——文件 src/stats/lang_tracker.rs（`#[cfg(test)]`）
-- [ ] T045 [P] [US6] 编写扩展名→语言映射单元测试：验证全部 20+ 已知扩展名（py/js/ts/java/go/rs/c/cpp/cs/rb/php/swift/kt/html/css/sql/sh/vue/jsx/tsx）解析正确，未知扩展名返回 "Other"——文件 src/stats/lang_tracker.rs（`#[cfg(test)]`）
+- [X] T044 [P] [US6] 编写 LanguageFocusTracker 单元测试：验证 5 秒阈值过滤（< 5s 丢弃、>= 5s 计入）、窗口切换时停止计时、accumulated 秒数累加——文件 src/stats/lang_tracker.rs（`#[cfg(test)]`）
+- [X] T045 [P] [US6] 编写扩展名→语言映射单元测试：验证全部 20+ 已知扩展名（py/js/ts/java/go/rs/c/cpp/cs/rb/php/swift/kt/html/css/sql/sh/vue/jsx/tsx）解析正确，未知扩展名返回 "Other"——文件 src/stats/lang_tracker.rs（`#[cfg(test)]`）
 
 ### Implementation for User Story 6
 
-- [ ] T046 [P] [US6] 实现扩展名→语言映射表（20+ 条目，对应 FR-020，未知返回 "Other"）——文件 src/stats/lang_tracker.rs
-- [ ] T047 [US6] 实现 `LanguageFocusTracker`：`FocusSession`（language、start_time: Instant、stable: bool）+ `accumulated: HashMap<String, u64>`，`on_window_change()` 和 `tick()` 方法（每秒或写入时调用）——文件 src/stats/lang_tracker.rs
-- [ ] T048 [US6] 在窗口追踪器中解析窗口标题提取语言：使用 `rsplitn(2, " - ")` 取文件名部分，`Path::extension()` 取扩展名，查映射表——文件 src/hooks/window.rs
-- [ ] T049 [US6] 在事件处理线程中：窗口切换事件到达时调用 `LanguageFocusTracker.on_window_change()`；输入字符事件同时更新语言维度字符计数——文件 src/hooks/mod.rs
-- [ ] T050 [US6] 在 DB 写入线程中：快照 `LanguageFocusTracker.accumulated`，对每个语言条目 UPSERT language_stats（`ON CONFLICT(date, language) DO UPDATE SET focus_seconds = focus_seconds + excluded.focus_seconds, ...`）——文件 src/db/writer.rs
-- [ ] T051 [US6] 实现 `kim langs` 子命令：查询 language_stats，渲染表格（语言、字符数、专注时间格式 `Xh Ym`，`--date` 选项，按 focus_seconds 降序）——文件 src/cli/langs.rs
+- [X] T046 [P] [US6] 实现扩展名→语言映射表（20+ 条目，对应 FR-020，未知返回 "Other"）——文件 src/stats/lang_tracker.rs
+- [X] T047 [US6] 实现 `LanguageFocusTracker`：`FocusSession`（language、start_time: Instant、stable: bool）+ `accumulated: HashMap<String, u64>`，`on_window_change()` 和 `tick()` 方法（每秒或写入时调用）——文件 src/stats/lang_tracker.rs
+- [X] T048 [US6] 在窗口追踪器中解析窗口标题提取语言：使用 `rsplitn(2, " - ")` 取文件名部分，`Path::extension()` 取扩展名，查映射表——文件 src/hooks/window.rs
+- [X] T049 [US6] 在事件处理线程中：窗口切换事件到达时调用 `LanguageFocusTracker.on_window_change()`；输入字符事件同时更新语言维度字符计数——文件 src/hooks/mod.rs
+- [X] T050 [US6] 在 DB 写入线程中：快照 `LanguageFocusTracker.accumulated`，对每个语言条目 UPSERT language_stats（`ON CONFLICT(date, language) DO UPDATE SET focus_seconds = focus_seconds + excluded.focus_seconds, ...`）——文件 src/db/writer.rs
+- [X] T051 [US6] 实现 `kim langs` 子命令：查询 language_stats，渲染表格（语言、字符数、专注时间格式 `Xh Ym`，`--date` 选项，按 focus_seconds 降序）——文件 src/cli/langs.rs
 
 **Checkpoint**: `kim langs` 正确显示各语言字符数与专注时长（精度满足 SC-009：累积误差 ≤ 5s/小时）
 
