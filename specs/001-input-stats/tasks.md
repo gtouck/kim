@@ -76,18 +76,18 @@
 
 ### Tests for User Story 4 ⚠️ 先写测试，确认 FAIL 后再实现
 
-- [ ] T018 [P] [US4] 编写 CLI 输出格式集成测试：向临时 SQLite 写入已知数据，执行 `kim today` 验证表格含正确字段与千位分隔符——文件 tests/integration/cli_output_test.rs
-- [ ] T019 [P] [US4] 编写 autostart 集成测试：使用隔离临时注册表键验证 enable / disable / status 操作——文件 tests/integration/autostart_test.rs
+- [X] T018 [P] [US4] 编写 CLI 输出格式集成测试：向临时 SQLite 写入已知数据，执行 `kim today` 验证表格含正确字段与千位分隔符——文件 tests/integration/cli_output_test.rs
+- [X] T019 [P] [US4] 编写 autostart 集成测试：使用隔离临时注册表键验证 enable / disable / status 操作——文件 tests/integration/autostart_test.rs
 
 ### Implementation for User Story 4
 
-- [ ] T020 [US4] 实现 kim/main.rs：使用 clap derive 定义全部子命令（start、stop、status、today、history、apps、langs、autostart + sub-subcommands），分派到各处理函数——文件 src/bin/kim/main.rs
-- [ ] T021 [US4] 实现 `kim start`：检查 PID 文件是否已存在且进程存活（退出码 1），spawn `kimd.exe`（DETACHED_PROCESS），最多等待 2 秒确认 PID 文件创建成功，输出 `kim started (PID: <pid>)`——文件 src/bin/kim/main.rs
-- [ ] T022 [P] [US4] 实现 `kim stop`：读取 PID 文件，发送命名事件 `Local\kim-stop-event`，等待最多 5 秒，超时则 TerminateProcess，最终删除 PID 文件——文件 src/bin/kim/main.rs
-- [ ] T023 [P] [US4] 实现 `kim status`：读取 PID 文件，调用 `OpenProcess` 检测进程是否存活，计算 uptime，输出 `running  PID: <pid>  uptime: HH:MM:SS` 或 `stopped`——文件 src/bin/kim/main.rs
-- [ ] T024 [US4] 实现 `kim today`：从 daily_stats 查询当日数据并渲染带边框的格式化表格（千位分隔符、最后更新时间戳）——文件 src/cli/today.rs
-- [ ] T025 [P] [US4] 实现 `kim history`：支持 DATE 参数（YYYY-MM-DD / yesterday）显示单日统计，支持 `--days N` 显示最近 N 天对比列表——文件 src/cli/history.rs
-- [ ] T026 [P] [US4] 实现 `kim autostart enable/disable/status`：操作 `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run` 下的 `kim` 值，值内容为 `"<path>\kimd.exe" --autostart`；`--autostart` 标志由 kimd/main.rs（T017）解析并触发 3 秒延迟启动——文件 src/cli/autostart.rs
+- [X] T020 [US4] 实现 kim/main.rs：使用 clap derive 定义全部子命令（start、stop、status、today、history、apps、langs、autostart + sub-subcommands），分派到各处理函数——文件 src/bin/kim/main.rs
+- [X] T021 [US4] 实现 `kim start`：检查 PID 文件是否已存在且进程存活（退出码 1），spawn `kimd.exe`（DETACHED_PROCESS），最多等待 2 秒确认 PID 文件创建成功，输出 `kim started (PID: <pid>)`——文件 src/bin/kim/main.rs
+- [X] T022 [P] [US4] 实现 `kim stop`：读取 PID 文件，发送命名事件 `Local\kim-stop-event`，等待最多 5 秒，超时则 TerminateProcess，最终删除 PID 文件——文件 src/bin/kim/main.rs
+- [X] T023 [P] [US4] 实现 `kim status`：读取 PID 文件，调用 `OpenProcess` 检测进程是否存活，计算 uptime，输出 `running  PID: <pid>  uptime: HH:MM:SS` 或 `stopped`——文件 src/bin/kim/main.rs
+- [X] T024 [US4] 实现 `kim today`：从 daily_stats 查询当日数据并渲染带边框的格式化表格（千位分隔符、最后更新时间戳）——文件 src/cli/today.rs
+- [X] T025 [P] [US4] 实现 `kim history`：支持 DATE 参数（YYYY-MM-DD / yesterday）显示单日统计，支持 `--days N` 显示最近 N 天对比列表——文件 src/cli/history.rs
+- [X] T026 [P] [US4] 实现 `kim autostart enable/disable/status`：操作 `HKCU\SOFTWARE\Microsoft\Windows\CurrentVersion\Run` 下的 `kim` 值，值内容为 `"<path>\kimd.exe" --autostart`；`--autostart` 标志由 kimd/main.rs（T017）解析并触发 3 秒延迟启动——文件 src/cli/autostart.rs
 
 **Checkpoint**: CLI 完整生命周期可用：start daemon、`kim today` 查询当日数据、`kim history --days 7` 查历史、stop daemon、autostart 开关
 
