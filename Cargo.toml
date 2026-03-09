@@ -13,6 +13,7 @@ path = "src/bin/kimd/main.rs"
 
 [dependencies]
 windows = { version = "0.56", features = [
+    "implement",
     "Win32_Foundation",
     "Win32_Security",
     "Win32_UI_WindowsAndMessaging",
@@ -22,7 +23,9 @@ windows = { version = "0.56", features = [
     "Win32_System_Diagnostics_ToolHelp",
     "Win32_System_IO",
     "Win32_Storage_FileSystem",
+    "Win32_System_Com",
 ] }
+windows-core = "0.56"
 rusqlite = { version = "0.31", features = ["bundled"] }
 crossbeam-channel = "0.5"
 clap = { version = "4", features = ["derive"] }

@@ -101,15 +101,15 @@
 
 ### Tests for User Story 2 ⚠️ 先写测试，确认 FAIL 后再实现
 
-- [ ] T027 [P] [US2] 编写单元测试：验证 `IS_PASSWORD_FIELD` AtomicBool 在密码字段焦点时为 true，离开后为 false——文件 src/state.rs（`#[cfg(test)]`，与 T007 的声明位置一致）
-- [ ] T028 [P] [US2] 编写单元测试：验证可见字符 VK 码过滤逻辑（字母/数字/标点 → 计入；F1-F12、方向键、Esc → 不计入；VK_PROCESSKEY → 由 UIA 处理，不重复计入）——文件 src/hooks/keyboard.rs（`#[cfg(test)]`）
+- [X] T027 [P] [US2] 编写单元测试：验证 `IS_PASSWORD_FIELD` AtomicBool 在密码字段焦点时为 true，离开后为 false——文件 src/state.rs（`#[cfg(test)]`，与 T007 的声明位置一致）
+- [X] T028 [P] [US2] 编写单元测试：验证可见字符 VK 码过滤逻辑（字母/数字/标点 → 计入；F1-F12、方向键、Esc → 不计入；VK_PROCESSKEY → 由 UIA 处理，不重复计入）——文件 src/hooks/keyboard.rs（`#[cfg(test)]`）
 
 ### Implementation for User Story 2
 
-- [ ] T029 [US2] 实现 UIA STA COM 线程：`CoInitializeEx(COINIT_APARTMENTTHREADED)`，注册一次全局根元素 TextChanged 事件监听器（`UIA_Text_TextChangedEventId`），在回调中计算文本增量并原子递增 `COUNTERS.characters`——文件 src/ime/mod.rs
-- [ ] T030 [US2] 实现密码字段检测：在 UIA 线程上监听 EVENT_OBJECT_FOCUS，异步查询 `UIA_IsPasswordPropertyId`，将结果写入 `crate::state::IS_PASSWORD_FIELD` AtomicBool（声明在 src/state.rs，见 T007）——文件 src/ime/mod.rs
-- [ ] T031 [US2] 更新键盘钩子：对直接可见字符（VK 非 `VK_PROCESSKEY`、非功能键）且 `crate::state::IS_PASSWORD_FIELD.load(Ordering::Relaxed) == false` 时递增 `COUNTERS.characters`；`VK_PROCESSKEY` 跳过（避免与 UIA 重复计数）——文件 src/hooks/keyboard.rs
-- [ ] T032 [US2] 在 kimd/main.rs 中 spawn UIA STA 线程，替换 Phase 3 的 UIA 占位线程——文件 src/bin/kimd/main.rs
+- [X] T029 [US2] 实现 UIA STA COM 线程：`CoInitializeEx(COINIT_APARTMENTTHREADED)`，注册一次全局根元素 TextChanged 事件监听器（`UIA_Text_TextChangedEventId`），在回调中计算文本增量并原子递增 `COUNTERS.characters`——文件 src/ime/mod.rs
+- [X] T030 [US2] 实现密码字段检测：在 UIA 线程上监听 EVENT_OBJECT_FOCUS，异步查询 `UIA_IsPasswordPropertyId`，将结果写入 `crate::state::IS_PASSWORD_FIELD` AtomicBool（声明在 src/state.rs，见 T007）——文件 src/ime/mod.rs
+- [X] T031 [US2] 更新键盘钩子：对直接可见字符（VK 非 `VK_PROCESSKEY`、非功能键）且 `crate::state::IS_PASSWORD_FIELD.load(Ordering::Relaxed) == false` 时递增 `COUNTERS.characters`；`VK_PROCESSKEY` 跳过（避免与 UIA 重复计数）——文件 src/hooks/keyboard.rs
+- [X] T032 [US2] 在 kimd/main.rs 中 spawn UIA STA 线程，替换 Phase 3 的 UIA 占位线程——文件 src/bin/kimd/main.rs
 
 **Checkpoint**: `kim today` characters 字段准确反映 IME 提交字符 + 直接可见键入，密码字段输入不被计入
 

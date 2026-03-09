@@ -376,6 +376,7 @@ dependencies = [
  "simplelog",
  "tempfile",
  "windows",
+ "windows-core 0.56.0",
 ]
 
 [[package]]

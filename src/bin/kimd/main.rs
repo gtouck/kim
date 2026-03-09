@@ -15,6 +15,7 @@ use windows::core::PCWSTR;
 
 use kim::db::writer::run_writer_thread;
 use kim::hooks::{run_event_thread, run_hook_thread};
+use kim::ime::run_uia_thread;
 use kim::state::{delete_pid_file, write_pid_file};
 
 fn main() {
@@ -65,13 +66,15 @@ fn main() {
         run_event_thread(rx, event_stop);
     });
 
-    // ── UIA placeholder thread (Phase 5 / US2 will replace with real UIA) ────
-    let uia_stop = Arc::clone(&stop_flag);
-    let _uia_thread = std::thread::spawn(move || {
-        while !uia_stop.load(Ordering::Relaxed) {
-            std::thread::sleep(std::time::Duration::from_millis(200));
-        }
+    // ── UIA STA thread: TextChanged (IME chars) + FocusChanged (password) ───
+    // Capture the thread ID so we can post WM_QUIT to its message loop on shutdown.
+    let (uia_tid_tx, uia_tid_rx) = std::sync::mpsc::channel::<u32>();
+    let uia_thread = std::thread::spawn(move || {
+        let tid = unsafe { GetCurrentThreadId() };
+        let _ = uia_tid_tx.send(tid);
+        run_uia_thread();
     });
+    let uia_tid = uia_tid_rx.recv().unwrap_or(0);
 
     // ── DB writer thread: 30-second flush loop ───────────────────────────────
     let writer_stop = Arc::clone(&stop_flag);
@@ -95,9 +98,17 @@ fn main() {
         }
     }
 
+    // Tell the UIA STA thread to exit its GetMessageW loop.
+    if uia_tid != 0 {
+        unsafe {
+            let _ = PostThreadMessageW(uia_tid, WM_QUIT, WPARAM(0), LPARAM(0));
+        }
+    }
+
     // Wait for orderly shutdown (generous timeout; daemon is not interactive).
     let _ = hook_thread.join();
     let _ = event_thread.join();
+    let _ = uia_thread.join();
     let _ = writer_thread.join();
 
     // ── Clean up PID file ────────────────────────────────────────────────────
