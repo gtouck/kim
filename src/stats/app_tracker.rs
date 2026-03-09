@@ -30,7 +30,15 @@ impl AppCounterMap {
     pub fn new() -> Self {
         Self { inner: Mutex::new(HashMap::new()) }
     }
+}
 
+impl Default for AppCounterMap {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl AppCounterMap {
     /// Increment the keystroke counter for `process`.
     pub fn add_keystroke(&self, process: &str) {
         let mut m = self.inner.lock().unwrap();

@@ -5,7 +5,7 @@ use rusqlite::Connection;
 use std::io::Write;
 
 use super::{format_number, pad_right_to};
-use super::today::{DailyStats, query_day, render_today};
+use super::today::{DailyStats, query_day, render_today, render_today_json};
 
 // ─── Column widths for the multi-day table ────────────────────────────────────
 
@@ -111,7 +111,7 @@ fn num_cell(val: i64, col: usize) -> String {
 // ─── Entry point ─────────────────────────────────────────────────────────────
 
 /// Entry point for `kim history`.  Returns an exit code.
-pub fn cmd_history(conn: &Connection, date_arg: Option<&str>, days: u32) -> i32 {
+pub fn cmd_history(conn: &Connection, date_arg: Option<&str>, days: u32, json: bool) -> i32 {
     if let Some(raw) = date_arg {
         // Resolve shorthand keywords.
         let resolved = match raw {
@@ -129,11 +129,19 @@ pub fn cmd_history(conn: &Connection, date_arg: Option<&str>, days: u32) -> i32 
         };
         match query_day(conn, &resolved) {
             Ok(Some(stats)) => {
-                render_today(&stats, &mut std::io::stdout()).ok();
+                if json {
+                    println!("{}", render_today_json(&stats));
+                } else {
+                    render_today(&stats, &mut std::io::stdout()).ok();
+                }
                 0
             }
             Ok(None) => {
-                println!("No data for {}", resolved);
+                if json {
+                    println!("{{\"error\": \"No data for {}\"}}", resolved);
+                } else {
+                    println!("No data for {}", resolved);
+                }
                 1
             }
             Err(e) => {
@@ -145,11 +153,19 @@ pub fn cmd_history(conn: &Connection, date_arg: Option<&str>, days: u32) -> i32 
         match query_days(conn, days) {
             Ok(rows) => {
                 if rows.is_empty() {
-                    println!("No history data available.");
+                    if json {
+                        println!("[]");
+                    } else {
+                        println!("No history data available.");
+                    }
                     return 1;
                 }
-                let label = format!("最近 {} 天统计", days);
-                render_days_list(&label, &rows, &mut std::io::stdout()).ok();
+                if json {
+                    println!("{}", render_days_json(&rows));
+                } else {
+                    let label = format!("最近 {} 天统计", days);
+                    render_days_list(&label, &rows, &mut std::io::stdout()).ok();
+                }
                 0
             }
             Err(e) => {
@@ -158,4 +174,20 @@ pub fn cmd_history(conn: &Connection, date_arg: Option<&str>, days: u32) -> i32 
             }
         }
     }
+}
+
+/// Serialize multiple `DailyStats` rows to a JSON array.
+fn render_days_json(rows: &[DailyStats]) -> String {
+    use super::today::format_unix_iso;
+    let items: Vec<String> = rows
+        .iter()
+        .map(|s| {
+            format!(
+                "  {{\"date\": \"{}\", \"keystrokes\": {}, \"mouse_clicks\": {}, \"characters\": {}, \"ctrl_c\": {}, \"ctrl_v\": {}, \"last_updated\": \"{}\"}}",
+                s.date, s.keystrokes, s.mouse_clicks, s.characters, s.ctrl_c, s.ctrl_v,
+                format_unix_iso(s.updated_at),
+            )
+        })
+        .collect();
+    format!("[\n{}\n]", items.join(",\n"))
 }

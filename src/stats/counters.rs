@@ -33,7 +33,15 @@ impl GlobalCounters {
             ctrl_v: AtomicU64::new(0),
         }
     }
+}
 
+impl Default for GlobalCounters {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
+impl GlobalCounters {
     /// Atomically read and reset all counters, returning the previous values.
     /// Uses `Relaxed` ordering — only atomicity is required here; no
     /// cross-thread synchronisation ordering is needed for these independent

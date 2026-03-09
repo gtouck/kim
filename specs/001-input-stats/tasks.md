@@ -186,11 +186,11 @@
 
 **Purpose**: 日志、数据保留、JSON 输出、最终验收
 
-- [ ] T052 [P] 在 kimd/main.rs 中初始化 simplelog 文件日志（路径 `%LOCALAPPDATA%\kim\kim.log`，级别 Info），在各模块关键路径添加 `log::info!` / `log::warn!` / `log::error!` 宏——文件 src/bin/kimd/main.rs（及各模块）
-- [ ] T053 [P] 在 DB 写入线程每次 flush 后执行 30 天数据保留清理：`DELETE FROM daily_stats / app_stats / language_stats WHERE date < date('now', '-30 days')`——文件 src/db/writer.rs
-- [ ] T054 [P] 为 `kim today`、`kim history`、`kim apps`、`kim langs` 实现 `--json` 输出选项，以符合 contracts/cli.md 规定的 JSON 格式——文件 src/cli/today.rs · src/cli/history.rs · src/cli/apps.rs · src/cli/langs.rs
-- [ ] T055 运行 `cargo clippy -- -D warnings`，修复全部 lint 警告（0 警告约束）——全源码文件
-- [ ] T056 运行 `cargo test`，确认全部单元测试与集成测试通过；按 quickstart.md 步骤执行完整 smoke test（start → 敲键 → today → stop）
+- [X] T052 [P] 在 kimd/main.rs 中初始化 simplelog 文件日志（路径 `%LOCALAPPDATA%\kim\kim.log`，级别 Info），在各模块关键路径添加 `log::info!` / `log::warn!` / `log::error!` 宏——文件 src/bin/kimd/main.rs（及各模块）
+- [X] T053 [P] 在 DB 写入线程每次 flush 后执行 30 天数据保留清理：`DELETE FROM daily_stats / app_stats / language_stats WHERE date < date('now', '-30 days')`——文件 src/db/writer.rs
+- [X] T054 [P] 为 `kim today`、`kim history`、`kim apps`、`kim langs` 实现 `--json` 输出选项，以符合 contracts/cli.md 规定的 JSON 格式——文件 src/cli/today.rs · src/cli/history.rs · src/cli/apps.rs · src/cli/langs.rs
+- [X] T055 运行 `cargo clippy -- -D warnings`，修复全部 lint 警告（0 警告约束）——全源码文件
+- [X] T056 运行 `cargo test`，确认全部单元测试与集成测试通过；按 quickstart.md 步骤执行完整 smoke test（start → 敲键 → today → stop）
 
 ---
 

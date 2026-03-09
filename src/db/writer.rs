@@ -3,6 +3,7 @@
 //! T015a — midnight rollover unit tests; `current_date()` extracted as injectable fn.
 //! T016  — `run_writer_thread` write loop + stop-flag shutdown.
 //! T050  — `flush_lang_stats` UPSERT for language_stats.
+//! T053  — `cleanup_old_data` deletes rows older than 30 days after each periodic flush.
 
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
@@ -224,6 +225,23 @@ fn periodic_flush(conn: &Connection, date_fn: fn() -> String) {
     if lang_has_data {
         if let Err(e) = flush_lang_stats(conn, &lang_snap, &date) {
             log::error!("writer: lang_stats flush failed: {e}");
+        }
+    }
+    // T053: prune rows older than 30 days after each successful flush.
+    cleanup_old_data(conn);
+}
+
+// ── T053: 30-day data retention ──────────────────────────────────────────────
+
+/// Delete rows from all stats tables that are older than 30 days.
+/// Called after every periodic flush so the database doesn't grow unboundedly.
+fn cleanup_old_data(conn: &Connection) {
+    for table in &["daily_stats", "app_stats", "language_stats"] {
+        let q = format!("DELETE FROM {table} WHERE date < date('now', '-30 days')");
+        match conn.execute(&q, []) {
+            Ok(n) if n > 0 => log::info!("writer: cleanup removed {n} old rows from {table}"),
+            Ok(_) => {}
+            Err(e) => log::warn!("writer: cleanup failed for {table}: {e}"),
         }
     }
 }

@@ -1,11 +1,14 @@
 #![windows_subsystem = "windows"]
 //! `kimd` — silent background daemon.
 //! Phase 3 (T017): channel creation, thread spawning, named-event stop mechanism.
+//! Phase 9 (T052): simplelog file logging initialised before any thread is spawned.
 
+use std::fs::OpenOptions;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 
 use crossbeam_channel::bounded;
+use simplelog::{Config, LevelFilter, WriteLogger};
 use windows::Win32::Foundation::{CloseHandle, LPARAM, WPARAM};
 use windows::Win32::System::Threading::{
     CreateEventW, GetCurrentThreadId, WaitForSingleObject,
@@ -16,19 +19,47 @@ use windows::core::PCWSTR;
 use kim::db::writer::run_writer_thread;
 use kim::hooks::{run_event_thread, run_hook_thread};
 use kim::ime::run_uia_thread;
-use kim::state::{delete_pid_file, write_pid_file};
+use kim::state::{delete_pid_file, kim_data_dir, write_pid_file};
+
+// ── T052: file logger ─────────────────────────────────────────────────────────
+
+fn init_logger() {
+    let log_path = match kim_data_dir() {
+        Ok(dir) => dir.join("kim.log"),
+        Err(e) => {
+            eprintln!("kimd: warning – could not determine log directory: {e}");
+            return;
+        }
+    };
+    let log_file = match OpenOptions::new().create(true).append(true).open(&log_path) {
+        Ok(f) => f,
+        Err(e) => {
+            eprintln!("kimd: warning – could not open log file {}: {e}", log_path.display());
+            return;
+        }
+    };
+    // Ignore error if logger is already initialised (e.g. in tests).
+    WriteLogger::init(LevelFilter::Info, Config::default(), log_file).ok();
+}
 
 fn main() {
+    // ── T052: initialise file logger first so all subsequent messages land in kim.log
+    init_logger();
+
     // ── Autostart: delay 3 s so the desktop has settled before hooking ───────
     if std::env::args().any(|a| a == "--autostart") {
+        log::info!("kimd: autostart mode — waiting 3 s before installing hooks");
         std::thread::sleep(std::time::Duration::from_secs(3));
     }
 
     // ── Write PID file so `kim status` / `kim stop` can find us ─────────────
     if let Err(e) = write_pid_file() {
         // Non-fatal: log but continue; PID file is a convenience, not critical.
+        log::warn!("kimd: could not write PID file: {e}");
         eprintln!("kimd: warning – could not write PID file: {e}");
     }
+
+    log::info!("kimd: daemon starting (PID: {})", std::process::id());
 
     // ── Shared stop flag ─────────────────────────────────────────────────────
     let stop_flag = Arc::new(AtomicBool::new(false));
@@ -88,6 +119,8 @@ fn main() {
         let _ = CloseHandle(stop_event);
     }
 
+    log::info!("kimd: stop signal received — beginning graceful shutdown");
+
     // ── Signal all threads to exit ────────────────────────────────────────────
     stop_flag.store(true, Ordering::Relaxed);
 
@@ -113,4 +146,5 @@ fn main() {
 
     // ── Clean up PID file ────────────────────────────────────────────────────
     let _ = delete_pid_file();
+    log::info!("kimd: shutdown complete");
 }

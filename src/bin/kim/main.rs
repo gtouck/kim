@@ -84,15 +84,15 @@ fn main() {
         Commands::Start => cmd_start(),
         Commands::Stop => cmd_stop(),
         Commands::Status => cmd_status(),
-        Commands::Today { json: _ } => with_db(today::cmd_today),
-        Commands::History { date, days, json: _ } => {
-            with_db(|c| history::cmd_history(c, date.as_deref(), days))
+        Commands::Today { json } => with_db(|c| today::cmd_today(c, json)),
+        Commands::History { date, days, json } => {
+            with_db(|c| history::cmd_history(c, date.as_deref(), days, json))
         }
-        Commands::Apps { date, top, json: _ } => {
-            with_db(|c| apps::cmd_apps(c, date.as_deref(), top))
+        Commands::Apps { date, top, json } => {
+            with_db(|c| apps::cmd_apps(c, date.as_deref(), top, json))
         }
-        Commands::Langs { date, json: _ } => {
-            with_db(|c| langs::cmd_langs(c, date.as_deref()))
+        Commands::Langs { date, json } => {
+            with_db(|c| langs::cmd_langs(c, date.as_deref(), json))
         }
         Commands::Autostart { sub } => match sub {
             AutostartSub::Enable => cmd_autostart_enable(),

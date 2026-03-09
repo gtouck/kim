@@ -51,7 +51,7 @@ const COL_CH: usize = 10;
 const COL_CC: usize = 8;
 const COL_CV: usize = 8;
 
-pub fn render_apps<W: Write>(rows: &[AppRow], date: &str, w: &mut W) -> std::io::Result<()> {
+fn render_apps<W: Write>(rows: &[AppRow], date: &str, w: &mut W) -> std::io::Result<()> {
     let inner = COL_APP + 1 + COL_KS + 1 + COL_CH + 1 + COL_CC + 1 + COL_CV;
 
     let title = format!("  按应用输入统计  {}", date);
@@ -117,20 +117,28 @@ pub fn render_apps<W: Write>(rows: &[AppRow], date: &str, w: &mut W) -> std::io:
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 /// Entry point for `kim apps`.  Returns an exit code.
-pub fn cmd_apps(conn: &Connection, date: Option<&str>, top: u32) -> i32 {
+pub fn cmd_apps(conn: &Connection, date: Option<&str>, top: u32, json: bool) -> i32 {
     let target_date = match date {
         Some(d) => d.to_string(),
         None => chrono::Local::now().format("%Y-%m-%d").to_string(),
     };
-    let top = top.max(1).min(100);
+    let top = top.clamp(1, 100);
 
     match query_apps(conn, &target_date, top) {
         Ok(rows) if rows.is_empty() => {
-            println!("No app data for {target_date}.  Start kim with: kim start");
+            if json {
+                println!("{{\"date\": \"{}\", \"apps\": []}}", target_date);
+            } else {
+                println!("No app data for {target_date}.  Start kim with: kim start");
+            }
             0
         }
         Ok(rows) => {
-            render_apps(&rows, &target_date, &mut std::io::stdout()).ok();
+            if json {
+                println!("{}", render_apps_json(&rows, &target_date));
+            } else {
+                render_apps(&rows, &target_date, &mut std::io::stdout()).ok();
+            }
             0
         }
         Err(e) => {
@@ -138,5 +146,43 @@ pub fn cmd_apps(conn: &Connection, date: Option<&str>, top: u32) -> i32 {
             2
         }
     }
+}
+
+/// Serialize app rows to a JSON object (T054).
+fn render_apps_json(rows: &[AppRow], date: &str) -> String {
+    let items: Vec<String> = rows
+        .iter()
+        .map(|r| {
+            let name = json_escape(&r.process_name);
+            format!(
+                "    {{\"process_name\": \"{}\", \"keystrokes\": {}, \"characters\": {}, \"ctrl_c\": {}, \"ctrl_v\": {}}}",
+                name, r.keystrokes, r.characters, r.ctrl_c, r.ctrl_v,
+            )
+        })
+        .collect();
+    format!(
+        "{{\n  \"date\": \"{}\",\n  \"apps\": [\n{}\n  ]\n}}",
+        date,
+        items.join(",\n"),
+    )
+}
+
+/// Minimal JSON string escaping for process names.
+fn json_escape(s: &str) -> String {
+    let mut out = String::with_capacity(s.len());
+    for c in s.chars() {
+        match c {
+            '"' => out.push_str("\\\""),
+            '\\' => out.push_str("\\\\"),
+            '\n' => out.push_str("\\n"),
+            '\r' => out.push_str("\\r"),
+            '\t' => out.push_str("\\t"),
+            c if (c as u32) < 0x20 => {
+                out.push_str(&format!("\\u{:04x}", c as u32));
+            }
+            c => out.push(c),
+        }
+    }
+    out
 }
 

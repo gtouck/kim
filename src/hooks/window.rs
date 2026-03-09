@@ -159,9 +159,9 @@ pub(super) fn extract_lang_from_title(title: &str) -> (Option<String>, Option<St
     const DASH_SEP: &str = " - ";
 
     let filename_part = if title.contains(EM_DASH_SEP) {
-        title.splitn(2, EM_DASH_SEP).next().unwrap_or(title)
+        title.split(EM_DASH_SEP).next().unwrap_or(title)
     } else if title.contains(DASH_SEP) {
-        title.splitn(2, DASH_SEP).next().unwrap_or(title)
+        title.split(DASH_SEP).next().unwrap_or(title)
     } else {
         title
     };

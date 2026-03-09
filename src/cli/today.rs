@@ -103,16 +103,49 @@ fn format_unix_local(unix: i64) -> String {
         .unwrap_or_else(|| "N/A".to_string())
 }
 
+pub(crate) fn format_unix_iso(unix: i64) -> String {
+    use chrono::{Local, TimeZone};
+    Local.timestamp_opt(unix, 0)
+        .single()
+        .map(|dt| dt.format("%Y-%m-%dT%H:%M:%S").to_string())
+        .unwrap_or_default()
+}
+
+/// Render a single `DailyStats` row as a JSON object (T054).
+///
+/// Format matches the CLI contract in `contracts/cli.md`.
+pub fn render_today_json(stats: &DailyStats) -> String {
+    let last_updated = format_unix_iso(stats.updated_at);
+    format!(
+        "{{\n  \"date\": \"{}\",\n  \"keystrokes\": {},\n  \"mouse_clicks\": {},\n  \"characters\": {},\n  \"ctrl_c\": {},\n  \"ctrl_v\": {},\n  \"last_updated\": \"{}\"\n}}",
+        stats.date,
+        stats.keystrokes,
+        stats.mouse_clicks,
+        stats.characters,
+        stats.ctrl_c,
+        stats.ctrl_v,
+        last_updated,
+    )
+}
+
 /// Entry point for `kim today`.  Returns an exit code.
-pub fn cmd_today(conn: &Connection) -> i32 {
+pub fn cmd_today(conn: &Connection, json: bool) -> i32 {
     let today = chrono::Local::now().format("%Y-%m-%d").to_string();
     match query_day(conn, &today) {
         Ok(Some(stats)) => {
-            render_today(&stats, &mut std::io::stdout()).ok();
+            if json {
+                println!("{}", render_today_json(&stats));
+            } else {
+                render_today(&stats, &mut std::io::stdout()).ok();
+            }
             0
         }
         Ok(None) => {
-            println!("No data for today yet.  Start kim with: kim start");
+            if json {
+                println!("{{\"error\": \"No data for today yet\"}}");
+            } else {
+                println!("No data for today yet.  Start kim with: kim start");
+            }
             0
         }
         Err(e) => {

@@ -59,7 +59,7 @@ const COL_LANG: usize = 16;
 const COL_CH: usize = 12;
 const COL_FOCUS: usize = 12;
 
-pub fn render_langs<W: Write>(rows: &[LangRow], date: &str, w: &mut W) -> std::io::Result<()> {
+fn render_langs<W: Write>(rows: &[LangRow], date: &str, w: &mut W) -> std::io::Result<()> {
     let inner = COL_LANG + 1 + COL_CH + 1 + COL_FOCUS;
 
     let title = format!("  编程语言统计  {}", date);
@@ -109,7 +109,7 @@ pub fn render_langs<W: Write>(rows: &[LangRow], date: &str, w: &mut W) -> std::i
 // ── Entry point ───────────────────────────────────────────────────────────────
 
 /// Entry point for `kim langs`.  Returns an exit code.
-pub fn cmd_langs(conn: &Connection, date: Option<&str>) -> i32 {
+pub fn cmd_langs(conn: &Connection, date: Option<&str>, json: bool) -> i32 {
     let target_date = match date {
         Some(d) => d.to_string(),
         None => chrono::Local::now().format("%Y-%m-%d").to_string(),
@@ -117,11 +117,19 @@ pub fn cmd_langs(conn: &Connection, date: Option<&str>) -> i32 {
 
     match query_langs(conn, &target_date) {
         Ok(rows) if rows.is_empty() => {
-            println!("No language data for {target_date}.  Start kim with: kim start");
+            if json {
+                println!("{{\"date\": \"{}\", \"languages\": []}}", target_date);
+            } else {
+                println!("No language data for {target_date}.  Start kim with: kim start");
+            }
             0
         }
         Ok(rows) => {
-            render_langs(&rows, &target_date, &mut std::io::stdout()).ok();
+            if json {
+                println!("{}", render_langs_json(&rows, &target_date));
+            } else {
+                render_langs(&rows, &target_date, &mut std::io::stdout()).ok();
+            }
             0
         }
         Err(e) => {
@@ -129,4 +137,22 @@ pub fn cmd_langs(conn: &Connection, date: Option<&str>) -> i32 {
             2
         }
     }
+}
+
+/// Serialize language rows to a JSON object (T054).
+fn render_langs_json(rows: &[LangRow], date: &str) -> String {
+    let items: Vec<String> = rows
+        .iter()
+        .map(|r| {
+            format!(
+                "    {{\"language\": \"{}\", \"characters\": {}, \"focus_seconds\": {}}}",
+                r.language, r.characters, r.focus_seconds,
+            )
+        })
+        .collect();
+    format!(
+        "{{\n  \"date\": \"{}\",\n  \"languages\": [\n{}\n  ]\n}}",
+        date,
+        items.join(",\n"),
+    )
 }
